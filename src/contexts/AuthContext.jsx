@@ -19,24 +19,23 @@ export function AuthProvider({ children }) {
       if (session?.user) {
         fetchProfile(session.user.id);
         setIsAdmin(session.user.email === 'hari.2408dt@gmail.com');
-      } else {
-        setIsLoading(false);
       }
+      setIsLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        
+
         if (session?.user) {
-          await fetchProfile(session.user.id);
+          fetchProfile(session.user.id);
           setIsAdmin(session.user.email === 'hari.2408dt@gmail.com');
         } else {
           setProfile(null);
           setIsAdmin(false);
-          setIsLoading(false);
         }
+        setIsLoading(false);
       }
     );
 
@@ -46,7 +45,6 @@ export function AuthProvider({ children }) {
   }, []);
 
   const fetchProfile = async (userId) => {
-    setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('user_profiles')
@@ -63,8 +61,6 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.error('Unexpected error fetching profile:', error);
       setProfile(null);
-    } finally {
-      setIsLoading(false);
     }
   };
 
