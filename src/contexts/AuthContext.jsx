@@ -11,6 +11,7 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -21,6 +22,7 @@ export function AuthProvider({ children }) {
         setIsAdmin(session.user.email === 'hari.2408dt@gmail.com');
       }
       setIsLoading(false);
+      setIsInitialized(true);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -39,10 +41,36 @@ export function AuthProvider({ children }) {
       }
     );
 
+    // Handle visibility change to prevent unnecessary re-loading
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isInitialized) {
+        // Only check auth status if we're already initialized and coming back to visible
+        // This prevents showing loading screen when switching tabs
+        supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+          // Only update if there's an actual change in session state
+          if (currentSession?.user?.id !== session?.user?.id) {
+            setSession(currentSession);
+            setUser(currentSession?.user ?? null);
+
+            if (currentSession?.user) {
+              fetchProfile(currentSession.user.id);
+              setIsAdmin(currentSession.user.email === 'hari.2408dt@gmail.com');
+            } else {
+              setProfile(null);
+              setIsAdmin(false);
+            }
+          }
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       subscription.unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [isInitialized]);
 
   const fetchProfile = async (userId) => {
     try {
